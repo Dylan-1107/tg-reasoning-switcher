@@ -241,6 +241,34 @@
       statusEl.textContent = text;
     }
 
+    function closeMiniApp() {
+      if (tg && typeof tg.close === 'function') {
+        tg.close();
+        return true;
+      }
+      return false;
+    }
+
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+        return true;
+      }
+      return closeMiniApp();
+    }
+
+    function setupTelegramBackButton() {
+      if (!tg || !tg.BackButton) return;
+      try {
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+          goBack();
+        });
+      } catch {
+        // ignore Telegram API setup failures
+      }
+    }
+
     async function fallbackCopy(command) {
       try {
         await navigator.clipboard.writeText(command);
@@ -255,9 +283,9 @@
       if (tg && typeof tg.sendData === 'function') {
         tg.sendData(command);
         setStatus(`已发送：${command}`);
-        if (typeof tg.close === 'function') {
-          setTimeout(() => tg.close(), 180);
-        }
+        setTimeout(() => {
+          closeMiniApp();
+        }, 180);
         return;
       }
       fallbackCopy(command);
@@ -267,10 +295,17 @@
       btn.addEventListener('click', () => sendCommand(btn.dataset.command));
     });
 
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        goBack();
+      }
+    });
+
     if (tg) {
       tg.ready();
       tg.expand();
-      setStatus('Mini App 已连接 Telegram，可以直接发送命令。');
+      setupTelegramBackButton();
+      setStatus('Mini App 已连接 Telegram，可以直接发送命令；左上角返回可直接退出。');
     }
   </script>
 </body>
